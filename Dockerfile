@@ -8,8 +8,8 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY cmd ./
-COPY pkg ./
+COPY cmd ./cmd
+COPY pkg ./pkg
 
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /prometheus-nginx-exporter ./cmd/exporter
