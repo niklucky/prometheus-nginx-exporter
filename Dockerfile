@@ -11,8 +11,8 @@ RUN go mod download
 COPY cmd ./
 COPY pkg ./
 
-RUN cd cmd/exporter && \
-    CGO_ENABLED=0 GOOS=linux go build -o /prometheus-nginx-exporter
+
+RUN CGO_ENABLED=0 GOOS=linux go build ./cmd/exporter -o /prometheus-nginx-exporter
 
 FROM golang:1.19 as worker
 
