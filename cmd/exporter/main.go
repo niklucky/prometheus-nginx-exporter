@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -51,26 +50,16 @@ func NewMetrics(reg prometheus.Registerer) *metrics {
 }
 
 func main() {
-	var (
-		targetHost = flag.String("target.host", "localhost", "nginx address with basic_status")
-		targetPort = flag.Int("target.port", 8080, "nginx port with basic_status")
-		targetPath = flag.String("target.path", "/status", "nginx path  with basic_status")
-		promPort   = flag.Int("prom port", 9150, "port to expose promitheus metrics")
-		logPath    = flag.String("target.log", "/var/logs/nginx/access.log", "path to nginx logs")
-	)
-
-	flag.Parse()
-
-	uri := fmt.Sprintf("http://%s:%d%s", *targetHost, *targetPort, *targetPath)
+	config := newConfig()
 
 	// Called on each collect request
 	basicStats := func() ([]exporter.NginxStats, error) {
 		var httpClient = &http.Client{
 			Timeout: time.Second * 10,
 		}
-		resp, err := httpClient.Get(uri)
+		resp, err := httpClient.Get(config.nginx.uri)
 		if err != nil {
-			log.Fatalf("request to basic_stats failed: %s: %s", uri, err)
+			log.Fatalf("request to basic_stats failed: %s: %s", config.nginx.uri, err)
 		}
 		defer resp.Body.Close()
 
@@ -89,14 +78,14 @@ func main() {
 	reg.MustRegister(bc)
 
 	m := NewMetrics(reg)
-	go tailAccessLogFile(m, *logPath)
+	go tailAccessLogFile(m, config.nginx.accessLogPath)
 
 	mux := http.NewServeMux()
 	promHandler := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	mux.Handle("/metrics", promHandler)
 
 	// Start listening for HTTP connections
-	port := fmt.Sprintf(":%d", *promPort)
+	port := fmt.Sprintf(":%d", config.promPort)
 	log.Printf("Starting nginx exporter on %q/metrics", port)
 	if err := http.ListenAndServe(port, mux); err != nil {
 		log.Fatalf("Error starting nginx exporter: %s", err)
