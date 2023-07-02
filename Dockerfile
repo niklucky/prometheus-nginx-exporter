@@ -12,7 +12,7 @@ COPY cmd ./
 COPY pkg ./
 
 
-RUN CGO_ENABLED=0 GOOS=linux go build ./cmd/exporter -o /prometheus-nginx-exporter
+RUN CGO_ENABLED=0 GOOS=linux go build -o /prometheus-nginx-exporter ./cmd/exporter
 
 FROM golang:1.19 as worker
 
