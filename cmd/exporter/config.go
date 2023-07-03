@@ -24,7 +24,7 @@ func newConfig() *config {
 		targetPort    = flag.Int("target.port", 8080, "nginx port with basic_status")
 		targetPath    = flag.String("target.path", "/status", "nginx path  with basic_status")
 		promPort      = flag.Int("prom port", 9150, "port to expose promitheus metrics")
-		accessLogPath = flag.String("target.log", "/var/logs/nginx/access.log", "path to nginx logs")
+		accessLogPath = flag.String("target.log", "/var/log/nginx/access.log", "path to nginx logs")
 	)
 
 	flag.Parse()
