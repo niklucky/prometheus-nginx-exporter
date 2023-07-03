@@ -28,13 +28,15 @@ func main() {
 		}
 		resp, err := httpClient.Get(config.nginx.uri)
 		if err != nil {
-			log.Fatalf("request to basic_stats failed: %s: %s", config.nginx.uri, err)
+			fmt.Printf("request to basic_stats failed: %s: %s", config.nginx.uri, err)
+			return []exporter.NginxStats{}, nil
 		}
 		defer resp.Body.Close()
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatalf("body read fail: %s", err)
+			fmt.Printf("body read fail: %s\n", err)
+			return []exporter.NginxStats{}, nil
 		}
 		r := bytes.NewReader(body)
 
@@ -55,7 +57,7 @@ func main() {
 
 	// Start listening for HTTP connections
 	port := fmt.Sprintf(":%d", config.promPort)
-	log.Printf("Starting nginx exporter on %q/metrics", port)
+	log.Printf("Starting nginx exporter on %s/metrics", port)
 	if err := http.ListenAndServe(port, mux); err != nil {
 		log.Fatalf("Error starting nginx exporter: %s", err)
 	}
