@@ -27,7 +27,7 @@ jobs:
           images: niklucky/prometheus-nginx-exporter
           tags: |
             type=raw,value=latest,enable=${{ endsWith(github.ref, 'main') }}
-            type=ref,event=tag
+            type=raw,value=${{github.run_number}},enable=${{ endsWith(github.ref, 'main') }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671

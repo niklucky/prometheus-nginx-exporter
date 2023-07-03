@@ -18,37 +18,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type metrics struct {
-	size     prometheus.Counter
-	duration *prometheus.HistogramVec
-	requests *prometheus.CounterVec
-}
-
-func NewMetrics(reg prometheus.Registerer) *metrics {
-	m := &metrics{
-		size: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "nginx",
-			Name:      "size_bytes_total",
-			Help:      "Total bytes sent to the clients.",
-		}),
-		requests: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: "nginx",
-			Name:      "http_requests_total",
-			Help:      "Total number of requests.",
-		}, []string{"status_code", "method", "path"}),
-		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: "nginx",
-			Name:      "http_request_duration_seconds",
-			Help:      "Duration of the request.",
-			// Optionally configure time buckets
-			// Buckets:   prometheus.LinearBuckets(0.01, 0.05, 20),
-			Buckets: prometheus.DefBuckets,
-		}, []string{"status_code", "method", "path"}),
-	}
-	reg.MustRegister(m.size, m.requests, m.duration)
-	return m
-}
-
 func main() {
 	config := newConfig()
 
@@ -77,7 +46,7 @@ func main() {
 	// reg.MustRegister(collectors.NewGoCollector())
 	reg.MustRegister(bc)
 
-	m := NewMetrics(reg)
+	m := exporter.NewMetrics(reg)
 	go tailAccessLogFile(m, config.nginx.accessLogPath)
 
 	mux := http.NewServeMux()
@@ -130,7 +99,7 @@ func toAccessLog(accessLogRequest []byte) (*nginxAccessLog, error) {
 	return &ret, nil
 }
 
-func tailAccessLogFile(m *metrics, path string) {
+func tailAccessLogFile(m *exporter.Metrics, path string) {
 	t, err := tail.TailFile(path, tail.Config{Follow: true, ReOpen: true})
 	if err != nil {
 		log.Fatalf("tail.TailFile failed: %s", err)
@@ -142,15 +111,15 @@ func tailAccessLogFile(m *metrics, path string) {
 			continue
 		}
 
-		m.size.Add(accessLog.BodyBytesSent)
+		m.Size.Add(accessLog.BodyBytesSent)
 
-		m.requests.With(prometheus.Labels{
+		m.Requests.With(prometheus.Labels{
 			"method":      accessLog.RequestMethod,
 			"status_code": strconv.Itoa(accessLog.StatusCode),
 			"path":        accessLog.RequestUri,
 		}).Add(1)
 
-		m.duration.With(prometheus.Labels{
+		m.Duration.With(prometheus.Labels{
 			"method":      accessLog.RequestMethod,
 			"status_code": strconv.Itoa(accessLog.StatusCode),
 			"path":        accessLog.RequestUri,
