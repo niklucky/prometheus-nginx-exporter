@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type config struct {
@@ -16,6 +17,7 @@ type config struct {
 type nginxConfig struct {
 	uri           string
 	accessLogPath string
+	allowedPaths  []string
 }
 
 func newConfig() *config {
@@ -25,6 +27,7 @@ func newConfig() *config {
 		targetPath    = flag.String("target.path", "/status", "nginx path  with basic_status")
 		promPort      = flag.Int("prom port", 9150, "port to expose promitheus metrics")
 		accessLogPath = flag.String("target.log", "/var/log/nginx/access.log", "path to nginx logs")
+		allowedPaths  = flag.String("allowed.paths", "/", "allowed HTTP path for metrics. Other will be ignored")
 	)
 
 	flag.Parse()
@@ -44,11 +47,20 @@ func newConfig() *config {
 			log.Printf("error parsing PROM_PORT: %s", e)
 		}
 	}
+	var nginxAllowedPaths []string
+	if allowedPaths != nil {
+		nginxAllowedPaths = strings.Split(*allowedPaths, ",")
+	}
+	if os.Getenv("ALLOWED_PATHS") != "" {
+		paths := os.Getenv("ALLOWED_PATHS")
+		nginxAllowedPaths = strings.Split(paths, ",")
+	}
 
 	return &config{
 		nginx: nginxConfig{
 			uri:           nginxUri,
 			accessLogPath: nginxAccessLogPath,
+			allowedPaths:  nginxAllowedPaths,
 		},
 		promPort: *promPort,
 	}
